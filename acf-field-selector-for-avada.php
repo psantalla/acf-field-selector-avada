@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: ACF Field Selector for Avada
- * Plugin URI: https://pablosantalla.com
+ * Plugin URI: https://github.com/psantalla/acf-field-selector-avada
  * Description: Adds searchable ACF field selectors to Fusion Builder dynamic content fields.
  * Version: 1.0.0
  * Requires at least: 5.0
@@ -23,6 +23,10 @@ class ACF_Field_Selector_Avada {
     private $cache_expiry = 3600;
     
     public function __construct() {
+        if (!function_exists('acf_get_field_groups')) {
+            return;
+        }
+        
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
         add_action('wp_ajax_get_acf_fields', array($this, 'ajax_get_fields'));
         add_action('acf/save_post', array($this, 'clear_cache'));
@@ -64,7 +68,7 @@ class ACF_Field_Selector_Avada {
             (isset($_GET['fb-edit']) && $_GET['fb-edit'] === '1') ||
             get_post_type() === 'fusion_element' ||
             is_admin() ||
-            ($post && strpos($post->post_content, 'fusion') !== false)
+            ($post && isset($post->post_content) && strpos($post->post_content, 'fusion') !== false)
         );
     }
     
@@ -79,14 +83,14 @@ class ACF_Field_Selector_Avada {
     }
     
     private function get_cached_fields() {
-        $cached = wp_cache_get($this->cache_key);
+        $cached = get_transient($this->cache_key);
         
         if ($cached !== false) {
             return $cached;
         }
         
         $fields = $this->fetch_acf_fields();
-        wp_cache_set($this->cache_key, $fields, '', $this->cache_expiry);
+        set_transient($this->cache_key, $fields, $this->cache_expiry);
         
         return $fields;
     }
@@ -178,7 +182,7 @@ class ACF_Field_Selector_Avada {
     }
     
     public function clear_cache() {
-        wp_cache_delete($this->cache_key);
+        delete_transient($this->cache_key);
     }
 }
 
