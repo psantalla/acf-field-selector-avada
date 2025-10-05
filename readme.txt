@@ -12,11 +12,11 @@ Searchable ACF field selector for Fusion Builder dynamic content fields.
 
 == Description ==
 
-Adds searchable dropdown selectors to Fusion Builder ACF field inputs. Fields are organized by group with type indicators for easy selection.
+Simplifies working with ACF fields in Avada's Fusion Builder by adding dropdown selectors with search functionality. Fields are organized by field groups with type indicators.
 
 **Features**
 
-* Search and filter ACF fields
+* Search and filter ACF fields by name or label
 * Grouped by field groups
 * Type indicators (text, image, repeater, etc.)
 * Support for nested fields and groups
@@ -63,8 +63,8 @@ Next to ACF field inputs in Fusion Builder's dynamic content options.
 
 == Screenshots ==
 
-1. Field selector dropdown in Fusion Builder
-2. Search and filter fields by name or type
+1. ACF fields loaded for easy integration
+2. Adaptive search based on field type
 
 == Changelog ==
 
