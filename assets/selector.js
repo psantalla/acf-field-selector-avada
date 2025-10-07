@@ -1,23 +1,12 @@
-/**
- * ACF Field Selector for Avada
- * 
- * Adds searchable field selectors to Fusion Builder ACF inputs
- */
-
 class ACFFieldSelector {
     constructor() {
         this.fields = [];
         this.selectors = new WeakMap();
         this.cache = new Map();
-        this.config = this.getConfig();
-        this.init();
-    }
-
-    getConfig() {
-        return {
-            targets: 'input[name="key"], input[name="field"], input[name="sub_field"], input[name="custom_field_name"], input[name="acf_repeater_field"], input[name="acf_relationship_field"]',
+        this.config = {
+            targets: 'input[name="key"], input[name="field"], input[name="sub_field"], input[name="custom_field_name"], input[name="acf_repeater_field"], input[name="acf_relationship_field"], .fusion-logic-additionals-field',
             wrapper: '.dynamic-wrapper, .option-details',
-            title: '.dynamic-title :is(h2, h3, h4), .option-details :is(h2, h3, h4)',
+            title: '.dynamic-title h3, .option-details h3',
             validTitles: ['Custom Field', 'ACF Image', 'ACF Text', 'ACF Number', 'ACF Repeater Sub Field', 'Repeater Field', 'Relationship Field'],
             fieldTypes: {
                 'custom_field_name': 'all',
@@ -26,28 +15,16 @@ class ACFFieldSelector {
                 'sub_field': 'subfield',
                 'acf_repeater_sub_field': 'subfield'
             },
-            titleToType: {
-                'Custom Field': 'all',
-                'ACF Image': 'acf_image',
-                'ACF Text': 'acf_text',
-                'ACF Number': 'acf_number',
-                'ACF Repeater Sub Field': 'subfield',
-                'Repeater Field': 'repeater',
-                'Relationship Field': 'relationship'
-            },
             subfieldInputs: ['sub_field', 'acf_repeater_sub_field'],
-            alwaysExcludedTypes: ['tab', 'message', 'accordion'],
+            excludedTypes: ['tab', 'message', 'accordion'],
             labels: {
                 'custom_field_name': 'Find Custom',
                 'acf_repeater_field': 'Find Repeater',
                 'acf_relationship_field': 'Find Relationship',
-                'sub_field': 'Find Sub Field',
-                'all': 'Find Field',
-                'repeater': 'Find Repeater',
-                'relationship': 'Find Relationship',
-                'subfield': 'Find Sub Field'
+                'sub_field': 'Find Sub Field'
             }
         };
+        this.init();
     }
 
     async init() {
@@ -56,7 +33,7 @@ class ACFFieldSelector {
             this.bindEvents();
             this.processExisting();
         } catch (error) {
-            console.error('ACF Selector initialization failed:', error);
+            console.error('ACF Selector failed:', error);
         }
     }
 
@@ -64,21 +41,6 @@ class ACFFieldSelector {
         if (this.cache.has('fields')) {
             this.fields = this.cache.get('fields');
             return;
-        }
-
-        const response = await this.fetchFields();
-
-        if (response.success) {
-            this.fields = response.data;
-            this.cache.set('fields', this.fields);
-        } else {
-            throw new Error(response.data || 'Failed to load fields');
-        }
-    }
-
-    async fetchFields() {
-        if (!afsaAjax || !afsaAjax.nonce) {
-            throw new Error('Security token missing');
         }
 
         const formData = new FormData();
@@ -90,15 +52,20 @@ class ACFFieldSelector {
             body: formData
         });
 
-        if (!response.ok) {
-            throw new Error('Network response failed');
-        }
+        const data = await response.json();
 
-        return await response.json();
+        if (data.success) {
+            this.fields = data.data;
+            this.cache.set('fields', this.fields);
+        }
     }
 
     bindEvents() {
-        const observer = new MutationObserver(this.debounce(() => this.processExisting(), 300));
+        const observer = new MutationObserver(() => {
+            clearTimeout(this.mutationTimer);
+            this.mutationTimer = setTimeout(() => this.processExisting(), 300);
+        });
+        
         observer.observe(document.body, { childList: true, subtree: true });
 
         document.addEventListener('click', (e) => {
@@ -138,64 +105,69 @@ class ACFFieldSelector {
             };
         }
 
-        return this.getContextFromWrapper(input);
-    }
+        if (input.classList.contains('fusion-logic-additionals-field')) {
+            return {
+                type: 'all',
+                label: 'Find Field',
+                isSubfield: false
+            };
+        }
 
-    getContextFromWrapper(input) {
         const wrapper = input.closest(this.config.wrapper);
         if (!wrapper) return null;
 
         const titleEl = wrapper.querySelector(this.config.title);
-        const title = titleEl?.textContent.trim();
+        if (!titleEl) return null;
 
+        const title = titleEl.textContent.trim();
         if (!this.config.validTitles.includes(title)) return null;
 
-        const type = this.config.titleToType[title] || 'all';
-        const label = this.config.labels[type] || 'Find Field';
+        const cleanLabel = title === 'ACF Repeater Sub Field' 
+            ? 'Find Sub Field' 
+            : 'Find ' + title.replace('ACF ', '');
 
         return {
-            type: type,
-            label: label,
-            isSubfield: type === 'subfield'
+            type: title.toLowerCase().replace(/\s+/g, '_'),
+            label: cleanLabel,
+            isSubfield: title === 'ACF Repeater Sub Field'
         };
     }
 
     createSelector(input, context) {
-        const container = this.createElement('div', 'afsa-selector');
-        const btn = this.createButton(context.label);
+        const container = document.createElement('div');
+        container.className = 'afsa-selector';
+
+        const btn = document.createElement('button');
+        btn.className = 'afsa-btn';
+        btn.type = 'button';
+        btn.textContent = context.label;
+
         const dropdown = this.createDropdown(context);
 
-        container.append(btn, dropdown);
+        container.appendChild(btn);
+        container.appendChild(dropdown);
+
         this.bindSelectorEvents(btn, dropdown, input, context);
 
         return container;
     }
 
-    createElement(tag, className) {
-        const el = document.createElement(tag);
-        el.className = className;
-        return el;
-    }
-
-    createButton(label) {
-        const btn = this.createElement('button', 'afsa-btn');
-        btn.type = 'button';
-        btn.textContent = label;
-        return btn;
-    }
-
     createDropdown(context) {
-        const dropdown = this.createElement('div', 'afsa-dropdown');
+        const dropdown = document.createElement('div');
+        dropdown.className = 'afsa-dropdown';
         dropdown.style.display = 'none';
 
-        const search = this.createElement('input', 'afsa-search');
+        const search = document.createElement('input');
+        search.className = 'afsa-search';
         search.type = 'text';
         search.placeholder = 'Search...';
 
-        const list = this.createElement('div', 'afsa-list');
+        const list = document.createElement('div');
+        list.className = 'afsa-list';
         this.populateList(list, context.type, context.isSubfield);
 
-        dropdown.append(search, list);
+        dropdown.appendChild(search);
+        dropdown.appendChild(list);
 
         return dropdown;
     }
@@ -207,47 +179,38 @@ class ACFFieldSelector {
         list.innerHTML = '';
 
         Object.entries(groups).forEach(([groupName, groupFields]) => {
-            const groupEl = this.createGroup(groupName, groupFields, isSubfield);
+            const groupEl = document.createElement('div');
+            groupEl.className = 'afsa-group';
+            groupEl.innerHTML = '<div class="afsa-group-title">' + this.escapeHtml(groupName) + '</div>';
+
+            groupFields.forEach(field => {
+                if (field.name && !this.config.excludedTypes.includes(field.type)) {
+                    groupEl.appendChild(this.createFieldItem(field, isSubfield));
+                }
+            });
+
             list.appendChild(groupEl);
         });
     }
 
-    createGroup(groupName, groupFields, isSubfield) {
-        const groupEl = this.createElement('div', 'afsa-group');
-        groupEl.innerHTML = '<div class="afsa-group-title">' + this.escapeHtml(groupName) + '</div>';
-
-        groupFields.forEach(field => {
-            if (this.isFieldSelectable(field)) {
-                groupEl.appendChild(this.createFieldItem(field, isSubfield));
-            }
-        });
-
-        return groupEl;
-    }
-
-    isFieldSelectable(field) {
-        return field.name && !this.config.alwaysExcludedTypes.includes(field.type);
-    }
-
     createFieldItem(field, isSubfield) {
-        const item = this.createElement('div', 'afsa-item');
+        const item = document.createElement('div');
+        item.className = 'afsa-item';
         const displayName = isSubfield ? (field.base_name || field.name) : field.name;
 
         item.dataset.name = field.name;
         item.dataset.baseName = field.base_name || field.name;
-        item.dataset.parent = field.parent || '';
-        item.dataset.isRepeaterChild = field.is_repeater_child ? '1' : '0';
 
-        item.innerHTML = '<span class="afsa-label">' + this.escapeHtml(field.label) + '</span>' +
-            '<code class="afsa-name">' + this.escapeHtml(displayName) + '</code>' +
-            '<span class="afsa-type">' + this.escapeHtml(field.type) + '</span>';
+        item.innerHTML = 
+            '<span class="afsa-type">' + this.escapeHtml(field.type) + '</span>' +
+            '<span class="afsa-label">' + this.escapeHtml(field.label) + '</span>' +
+            '<code class="afsa-name">' + this.escapeHtml(displayName) + '</code>';
 
         return item;
     }
 
     filterFields(type) {
         const filters = {
-            'all': f => f.type !== 'repeater',
             'acf_image': f => f.type === 'image',
             'acf_text': f => ['text', 'textarea', 'wysiwyg'].includes(f.type),
             'acf_number': f => f.type === 'number',
@@ -258,8 +221,7 @@ class ACFFieldSelector {
         };
 
         const filter = filters[type] || (() => true);
-
-        return this.fields.filter(f => this.isFieldSelectable(f) && filter(f));
+        return this.fields.filter(filter);
     }
 
     groupFields(fields) {
@@ -285,7 +247,14 @@ class ACFFieldSelector {
         });
 
         list.addEventListener('click', (e) => {
-            this.handleFieldSelect(e, input, context, dropdown);
+            const item = e.target.closest('.afsa-item');
+            if (!item) return;
+
+            const value = context.isSubfield ? item.dataset.baseName : item.dataset.name;
+            input.value = value;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            dropdown.style.display = 'none';
         });
     }
 
@@ -299,46 +268,25 @@ class ACFFieldSelector {
         }
     }
 
-    handleFieldSelect(e, input, context, dropdown) {
-        const item = e.target.closest('.afsa-item');
-        if (!item) return;
-
-        const value = context.isSubfield ? item.dataset.baseName : item.dataset.name;
-        input.value = value;
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-        dropdown.style.display = 'none';
-    }
-
     filterList(list, term) {
         const items = list.querySelectorAll('.afsa-item');
         const groups = list.querySelectorAll('.afsa-group');
 
         if (!term) {
-            this.showAll(items, groups);
+            items.forEach(item => item.style.display = '');
+            groups.forEach(group => group.style.display = '');
             return;
         }
 
-        this.filterItems(items, term);
-        this.filterGroups(groups);
-    }
-
-    showAll(items, groups) {
-        items.forEach(item => item.style.display = '');
-        groups.forEach(group => group.style.display = '');
-    }
-
-    filterItems(items, term) {
         items.forEach(item => {
             const name = item.querySelector('.afsa-name').textContent.toLowerCase();
             const label = item.querySelector('.afsa-label').textContent.toLowerCase();
             item.style.display = (name.includes(term) || label.includes(term)) ? '' : 'none';
         });
-    }
 
-    filterGroups(groups) {
         groups.forEach(group => {
-            const visibleItems = group.querySelectorAll('.afsa-item:not([style*="none"])');
-            group.style.display = visibleItems.length ? '' : 'none';
+            const visible = group.querySelectorAll('.afsa-item:not([style*="none"])');
+            group.style.display = visible.length ? '' : 'none';
         });
     }
 
@@ -352,23 +300,6 @@ class ACFFieldSelector {
         const div = document.createElement('div');
         div.textContent = text || '';
         return div.innerHTML;
-    }
-
-    debounce(func, wait) {
-        let timeout;
-        return (...args) => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), wait);
-        };
-    }
-
-    destroy() {
-        if (this.observer) {
-            this.observer.disconnect();
-        }
-        this.cache.clear();
-        this.selectors = new WeakMap();
-        this.fields = [];
     }
 }
 

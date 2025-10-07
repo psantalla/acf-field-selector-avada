@@ -51,6 +51,13 @@ class ACF_Field_Selector_Avada {
             $version
         );
         
+        wp_enqueue_style(
+            'afsa-fix', 
+            plugin_dir_url(__FILE__) . 'assets/fix.css', 
+            array('afsa-selector'), 
+            $version
+        );
+        
         wp_localize_script('afsa-selector', 'afsaAjax', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('afsa_fields_nonce')

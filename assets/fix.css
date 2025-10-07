@@ -1,0 +1,4 @@
+/* simple visual tweaks to improve ACF field selector rendering */
+.fusion-logic-controller-content {
+	overflow: visible !important;
+}
