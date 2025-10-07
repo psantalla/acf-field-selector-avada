@@ -3,7 +3,7 @@
  * Plugin Name: ACF Field Selector for Avada
  * Plugin URI: https://github.com/psantalla/acf-field-selector-avada
  * Description: Adds searchable ACF field selectors to Fusion Builder dynamic content fields.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Author: Pablo Santalla
@@ -23,10 +23,7 @@ class ACF_Field_Selector_Avada {
     private $cache_expiry = 3600;
     
     public function __construct() {
-        if (!function_exists('acf_get_field_groups')) {
-            return;
-        }
-        
+        // Removed early ACF check - prevented hooks registration if ACF loaded after plugin
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
         add_action('wp_ajax_get_acf_fields', array($this, 'ajax_get_fields'));
         add_action('acf/save_post', array($this, 'clear_cache'));
@@ -37,7 +34,7 @@ class ACF_Field_Selector_Avada {
             return;
         }
         
-        $version = defined('WP_DEBUG') && WP_DEBUG ? time() : '1.0.0';
+        $version = defined('WP_DEBUG') && WP_DEBUG ? time() : '1.0.1';
         
         wp_enqueue_script(
             'afsa-selector', 
