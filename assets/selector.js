@@ -18,7 +18,7 @@ class ACFFieldSelector {
             subfieldInputs: ['sub_field', 'acf_repeater_sub_field'],
             excludedTypes: ['tab', 'message', 'accordion'],
             labels: {
-                'custom_field_name': 'Find Custom',
+                'custom_field_name': 'Find Custom Field',
                 'acf_repeater_field': 'Find Repeater',
                 'acf_relationship_field': 'Find Relationship',
                 'sub_field': 'Find Sub Field'
