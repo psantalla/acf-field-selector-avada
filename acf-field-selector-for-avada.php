@@ -6,8 +6,8 @@
  * Version: 1.0.1
  * Requires at least: 5.0
  * Requires PHP: 7.4
- * Author: Pablo Santalla
- * Author URI: https://pablosantalla.com
+ * Author: IDG Advertising
+ * Author URI: https://idgadvertising.com
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: acf-field-selector-avada
