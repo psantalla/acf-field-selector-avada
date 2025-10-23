@@ -64,8 +64,3 @@ acf-field-selector-avada/
 ## License
 
 GPL-2.0-or-later
-
-## Author
-
-Pablo Santalla  
-[pablosantalla.com](https://pablosantalla.com/)
